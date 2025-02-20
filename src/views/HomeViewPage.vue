@@ -1,77 +1,77 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
-import UserCard from '../components/UserCard.vue';
-import UserModal from '../components/UserModal.vue';
-import { useUserStore } from '../stores/user-store';
-import { useUserApi } from '../composables/user-api';
-import { User } from '../types/user-types';
+  import { ref, computed, onMounted, watch } from 'vue';
+  import UserCard from '../components/UserCard.vue';
+  import UserModal from '../components/UserModal.vue';
+  import { useUserStore } from '../stores/user-store';
+  import { useUseApi } from '../composables/use-api';
+  import { User } from '../types/user-types';
+  import { GenderFilter } from '../enums/user-gender';
 
-const userStore = useUserStore();
-const { users, loading, fetchUsers } = useUserApi();
+  const userStore = useUserStore();
+  const { users, loading, fetchUsers } = useUseApi();
+  const selectedGender = ref<GenderFilter>(userStore.genderFilter);
+  const currentPage = ref(userStore.currentPage);
+  const usersPerPage = ref(userStore.usersPerPage);
 
-const selectedGender = ref(userStore.genderFilter);
-const currentPage = ref(userStore.currentPage);
-const usersPerPage = ref(userStore.usersPerPage);
+  const paginatedUsers = computed(() => {
+    const start = (currentPage.value - 1) * usersPerPage.value;
+    const end = start + usersPerPage.value;
+    return userStore.filteredUsers.slice(start, end);
+  });
 
-const paginatedUsers = computed(() => {
-  const start = (currentPage.value - 1) * usersPerPage.value;
-  const end = start + usersPerPage.value;
-  return userStore.filteredUsers.slice(start, end);
-});
+  const totalPages = computed(() => {
+    return Math.ceil(userStore.filteredUsers.length / usersPerPage.value);
+  });
 
-const totalPages = computed(() => {
-  return 10;
-});
+  const filterByGender = () => {
+    userStore.setGenderFilter(selectedGender.value);
+    currentPage.value = 1;
+    refreshList();
+  };
 
-const filterByGender = () => {
-  userStore.setGenderFilter(selectedGender.value);
-  currentPage.value = 1;
-  refreshList();
-};
+  const refreshList = async () => {
+    await fetchUsers(
+      120,
+      selectedGender.value === GenderFilter.All ? '' : selectedGender.value
+    );
+    userStore.setUsers(users.value);
+  };
 
-const refreshList = async () => {
-  await fetchUsers(
-    120,
-    selectedGender.value === 'all' ? '' : selectedGender.value
-  );
-  userStore.setUsers(users.value);
-};
+  const selectedUser = ref<User | null>(null);
+  const isModalVisible = ref(false);
 
-const selectedUser = ref<User | null>(null);
-const isModalVisible = ref(false);
+  const openModal = (user: User) => {
+    selectedUser.value = user;
+    isModalVisible.value = true;
+  };
 
-const openModal = (user: User) => {
-  selectedUser.value = user;
-  isModalVisible.value = true;
-};
+  const closeModal = () => {
+    isModalVisible.value = false;
+    selectedUser.value = null;
+  };
 
-const closeModal = () => {
-  isModalVisible.value = false;
-  selectedUser.value = null;
-};
+  const prevPage = () => {
+    if (currentPage.value > 1) {
+      currentPage.value--;
+    }
+  };
 
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    currentPage.value--;
-  }
-};
+  const nextPage = () => {
+    if (currentPage.value < totalPages.value) {
+      currentPage.value++;
+    }
+  };
 
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    currentPage.value++;
-  }
-};
+  onMounted(async () => {
+    if (userStore.users.length === 0) {
+      await refreshList();
+    }
+  });
 
-onMounted(async () => {
-  if (userStore.users.length === 0) {
-    await refreshList();
-  }
-});
-
-watch([selectedGender, currentPage], () => {
-  userStore.setCurrentPage(currentPage.value);
-  userStore.setGenderFilter(selectedGender.value);
-});
+  watch([selectedGender, currentPage], () => {
+    userStore.setCurrentPage(currentPage.value);
+    userStore.setGenderFilter(selectedGender.value);
+  });
 </script>
 
 <template>
@@ -89,10 +89,11 @@ watch([selectedGender, currentPage], () => {
         @change="filterByGender"
         class="custom-select"
       >
-        <option value="all">All</option>
-        <option value="male">Male</option>
-        <option value="female">Female</option>
+        <option :value="GenderFilter.All">All</option>
+        <option :value="GenderFilter.Male">Male</option>
+        <option :value="GenderFilter.Female">Female</option>
       </select>
+
       <button @click="refreshList" class="refresh-btn">Refresh List</button>
     </div>
 
@@ -138,132 +139,114 @@ watch([selectedGender, currentPage], () => {
 </template>
 
 <style scoped>
-.home-view {
-  font-family: 'Arial', sans-serif;
-  background-color: #f8f9fa;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 30px 20px;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 40px;
-}
-
-.header h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #343a40;
-}
-
-.subheading {
-  font-size: 1.2rem;
-  color: #6c757d;
-  margin-top: 5px;
-}
-
-.filter-container {
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: 40px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  width: 100%;
-  max-width: 900px;
-}
-
-.filter-container label {
-  font-size: 1rem;
-  color: #495057;
-}
-
-.custom-select {
-  padding: 8px 15px;
-  font-size: 1rem;
-  border-radius: 8px;
-  border: 1px solid #ced4da;
-}
-
-.refresh-btn {
-  padding: 12px 25px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-}
-
-.refresh-btn:hover {
-  background-color: #218838;
-}
-
-.users {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
-  width: 100%;
-  max-width: 1200px;
-}
-
-.user-card-wrapper {
-  display: flex;
-  justify-content: center;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 15px;
-  margin-top: 20px;
-}
-
-.page-btn {
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-}
-
-.page-btn:hover {
-  background-color: #0056b3;
-}
-
-.page-btn:disabled {
-  background-color: #6c757d;
-  cursor: not-allowed;
-}
-
-.page-info {
-  font-size: 1rem;
-  color: #495057;
-}
-
-@media (max-width: 768px) {
-  .header h1 {
-    font-size: 2rem;
-  }
-
-  .filter-container {
+  .home-view {
+    font-family: 'Arial', sans-serif;
+    background-color: #f8f9fa;
+    display: flex;
     flex-direction: column;
-    gap: 10px;
+    align-items: center;
+    padding: 30px 20px;
+    height: 100vh;
+    overflow-y: auto;
   }
-
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #343a40;
+  }
+  .subheading {
+    font-size: 1.2rem;
+    color: #6c757d;
+    margin-top: 5px;
+  }
+  .filter-container {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+  }
+  .filter-container label {
+    font-size: 1rem;
+    color: #495057;
+  }
+  .custom-select {
+    padding: 8px 15px;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+  }
+  .refresh-btn {
+    padding: 12px 25px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+  }
+  .refresh-btn:hover {
+    background-color: #218838;
+  }
+  .users {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 1200px;
+  }
+  .user-card-wrapper {
+    display: flex;
+    justify-content: center;
+  }
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 20px;
+  }
   .page-btn {
-    font-size: 0.9rem;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
   }
-}
+  .page-btn:hover {
+    background-color: #0056b3;
+  }
+  .page-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+  }
+  .page-info {
+    font-size: 1rem;
+    color: #495057;
+  }
+  @media (max-width: 768px) {
+    .header h1 {
+      font-size: 2rem;
+    }
+    .filter-container {
+      flex-direction: column;
+      gap: 10px;
+    }
+    .page-btn {
+      font-size: 0.9rem;
+    }
+  }
 </style>

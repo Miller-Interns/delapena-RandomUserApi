@@ -1,5 +1,6 @@
-export enum UserGender {
+export enum GenderFilter {
+  All = 'all',
   Male = 'male',
   Female = 'female',
-  All = 'all',
+  Other = 'other',
 }

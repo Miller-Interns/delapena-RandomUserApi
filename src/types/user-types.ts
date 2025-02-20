@@ -10,15 +10,22 @@ export interface UserPicture {
   thumbnail: string;
 }
 
+export interface Street {
+  number: number;
+  name: string;
+}
+
 export interface UserLocation {
-  street: {
-    number: number;
-    name: string;
-  };
+  street: Street; // Now using the Street interface
   city: string;
   state: string;
   country: string;
   postcode: string | number;
+}
+
+export interface DOB {
+  date: string;
+  age: number;
 }
 
 export interface User {
@@ -27,10 +34,7 @@ export interface User {
   name: UserName;
   location: UserLocation;
   email: string;
-  dob: {
-    date: string;
-    age: number;
-  };
+  dob: DOB; // Now using the DOB interface
   phone: string;
   cell: string;
   picture: UserPicture;

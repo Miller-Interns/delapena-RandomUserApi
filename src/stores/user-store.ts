@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia';
 import type { User } from '../types/user-types';
+import { GenderFilter } from '../enums/user-gender';
 
 interface UserState {
   users: User[];
-  genderFilter: string;
+  genderFilter: GenderFilter;
   currentPage: number;
   usersPerPage: number;
 }
@@ -11,15 +12,15 @@ interface UserState {
 export const useUserStore = defineStore('userStore', {
   state: (): UserState => ({
     users: [],
-    genderFilter: 'all',
+    genderFilter: GenderFilter.All,
     currentPage: 1,
     usersPerPage: 12,
   }),
 
   getters: {
     filteredUsers(state): User[] {
-      if (state.genderFilter === 'all') return state.users;
-      return state.users.filter((User) => User.gender === state.genderFilter);
+      if (state.genderFilter === GenderFilter.All) return state.users;
+      return state.users.filter((user) => user.gender === state.genderFilter);
     },
 
     totalPages(): number {
@@ -36,7 +37,7 @@ export const useUserStore = defineStore('userStore', {
       this.users = users;
     },
 
-    setGenderFilter(gender: string) {
+    setGenderFilter(gender: GenderFilter) {
       this.genderFilter = gender;
     },
 
